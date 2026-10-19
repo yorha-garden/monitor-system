@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { isBooting, REDUCED_MOTION_QUERY } from "./boot-state";
 
 export function GlitchTitle({ text }: { text: string }) {
   const ref = useRef<HTMLHeadingElement>(null);
@@ -19,10 +20,9 @@ export function GlitchTitle({ text }: { text: string }) {
 
     title.addEventListener("mouseenter", glitch);
     let id: number | undefined;
-    if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (!matchMedia(REDUCED_MOTION_QUERY).matches) {
       id = window.setInterval(() => {
-        const booting = document.documentElement.classList.contains("booting");
-        if (!booting && Math.random() < 0.5) glitch();
+        if (!isBooting() && Math.random() < 0.5) glitch();
       }, 7000);
     }
 

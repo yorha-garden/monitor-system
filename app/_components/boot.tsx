@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { isBooting } from "./boot-state";
 
 // [label, status, delay before the next line in ms]
 const LINES: [string, string | null, number][] = [
@@ -32,16 +33,14 @@ function format(label: string, status: string | null) {
   return `${label} ${".".repeat(dots)} ${status}`;
 }
 
-// The inline script in the root layout adds `booting` to <html> when the sequence should play,
-// or `booted` when it should be skipped (already seen this session, or reduced motion).
 export function Boot() {
   const [shown, setShown] = useState(0);
   const [phase, setPhase] = useState<"running" | "out" | "gone">("running");
   const finishRef = useRef<() => void>(undefined);
 
   useEffect(() => {
+    if (!isBooting()) return;
     const root = document.documentElement;
-    if (!root.classList.contains("booting")) return;
 
     let timer: number | undefined;
     let finished = false;

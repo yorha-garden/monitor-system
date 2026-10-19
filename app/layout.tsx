@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP, Poppins } from "next/font/google";
 import localFont from "next/font/local";
 import { Boot } from "./_components/boot";
+import { REDUCED_MOTION_QUERY } from "./_components/boot-state";
 import "./globals.css";
 
 const acorn = localFont({
@@ -44,7 +45,7 @@ const bootScript = `(function () {
   try { if (localStorage.getItem("yg-inv") === "1") root.classList.add("inv"); } catch (e) {}
   var seen = false;
   try { seen = sessionStorage.getItem("yg-boot") === "1"; } catch (e) {}
-  var reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var reduced = matchMedia(${JSON.stringify(REDUCED_MOTION_QUERY)}).matches;
   root.classList.add(seen || reduced ? "booted" : "booting");
 })();`;
 
