@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { isBooting } from "./boot-state";
+import { isBooting, SKIP_ATTRIBUTE } from "./boot-state";
 
 // [label, status, delay before the next line in ms]
 const LINES: [string, string | null, number][] = [
@@ -54,6 +54,7 @@ export function Boot() {
         sessionStorage.setItem("yg-boot", "1");
       } catch {}
       root.classList.remove("booting");
+      root.removeAttribute(SKIP_ATTRIBUTE);
       setPhase("out");
       timer = window.setTimeout(() => setPhase("gone"), 520);
     }
@@ -72,7 +73,8 @@ export function Boot() {
 
     finishRef.current = finish;
     window.addEventListener("keydown", finish);
-    timer = window.setTimeout(next, 0);
+    // A key or click before hydration was recorded by the inline script in the root layout.
+    timer = window.setTimeout(root.hasAttribute(SKIP_ATTRIBUTE) ? finish : next, 0);
 
     return () => {
       window.clearTimeout(timer);

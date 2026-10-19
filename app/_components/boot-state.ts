@@ -4,6 +4,9 @@
 
 export const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
+// Set on <html> by the inline script when a key or click arrives before the boot overlay hydrates.
+export const SKIP_ATTRIBUTE = "data-skip";
+
 export function isBooting() {
   return document.documentElement.classList.contains("booting");
 }
