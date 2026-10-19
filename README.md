@@ -12,6 +12,7 @@ browser and a light/dark display mode.
   plus Poppins and Noto Sans JP from Google Fonts, downloaded at build time and served
   from this app
 - ESLint with `eslint-config-next`
+- [Playwright](https://playwright.dev) end-to-end tests (Chromium), run in GitHub Actions CI
 
 ```text
 app/
@@ -20,6 +21,8 @@ app/
   globals.css       all styles
   icon.svg          favicon
   _components/      client components (boot, sections, clock, mode switch, glitch title)
+tests/              Playwright end-to-end tests
+.github/workflows/  CI: lint, build and tests on pull requests and pushes to main
 ```
 
 ## Setup & run
@@ -33,12 +36,16 @@ npm run dev
 
 Then open <http://localhost:3000>.
 
-| Command         | What it does                         |
-| --------------- | ------------------------------------ |
-| `npm run dev`   | Start the dev server with hot reload |
-| `npm run lint`  | Run ESLint                           |
-| `npm run build` | Type-check and build for production  |
-| `npm start`     | Serve the production build           |
+| Command         | What it does                                           |
+| --------------- | ------------------------------------------------------ |
+| `npm run dev`   | Start the dev server with hot reload                   |
+| `npm run lint`  | Run ESLint                                             |
+| `npm run build` | Type-check and build for production                    |
+| `npm start`     | Serve the production build                             |
+| `npm test`      | Build, serve on port 3100 and run the Playwright tests |
+
+Before the first `npm test`, install the browser once with `npx playwright install chromium`.
+Set `PLAYWRIGHT_PORT` to serve the tests on another port.
 
 ## Environment variables
 
