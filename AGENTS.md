@@ -86,8 +86,11 @@ This is a Next.js (App Router, TypeScript) app; see `README.md` for setup.
 
 - `npm run lint` must pass with no errors.
 - `npm run build` must succeed (it also type-checks).
-- For UI changes, run the app (`npm run dev`) and check the page in a browser.
-- There is no automated test suite yet. Say so in your report rather than claiming tests passed.
+- `npm test` must pass: the Playwright end-to-end suite in `tests/`, run against a production
+  build. Run `npx playwright install chromium` once first. New page behaviour needs a test there.
+- For UI changes, also run the app (`npm run dev`) and check the page in a browser.
+- CI (`.github/workflows/ci.yml`) runs lint, build and tests on every pull request and push to
+  `main`; it must be green before merging.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
