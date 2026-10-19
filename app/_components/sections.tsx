@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { isBooting } from "./boot-state";
 
 export type Section = {
   label: string;
@@ -20,7 +21,7 @@ export function Sections({ sections, aside }: SectionsProps) {
   // ↑/↓ cycle through sections and 1–n jump to one, but not while the boot sequence is playing.
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (document.documentElement.classList.contains("booting")) return;
+      if (isBooting()) return;
       if (e.key === "ArrowDown") setActive((i) => (i + 1) % count);
       else if (e.key === "ArrowUp") setActive((i) => (i - 1 + count) % count);
       else if (/^[1-9]$/.test(e.key) && Number(e.key) <= count) setActive(Number(e.key) - 1);

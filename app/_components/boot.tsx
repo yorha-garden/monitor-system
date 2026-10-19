@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { isBootSkipped, isBooting, SKIP_ATTRIBUTE } from "./boot-state";
 
 // [label, status, delay before the next line in ms]
 const LINES: [string, string | null, number][] = [
@@ -32,16 +33,19 @@ function format(label: string, status: string | null) {
   return `${label} ${".".repeat(dots)} ${status}`;
 }
 
-// The inline script in the root layout adds `booting` to <html> when the sequence should play,
-// or `booted` when it should be skipped (already seen this session, or reduced motion).
+const subscribe = () => () => {};
+
 export function Boot() {
+  // The server always renders the overlay (CSS hides it under `html.booted` until hydration); on the
+  // client it is dropped right after hydration when the inline script skipped the sequence.
+  const skipped = useSyncExternalStore(subscribe, isBootSkipped, () => false);
   const [shown, setShown] = useState(0);
   const [phase, setPhase] = useState<"running" | "out" | "gone">("running");
   const finishRef = useRef<() => void>(undefined);
 
   useEffect(() => {
+    if (!isBooting()) return;
     const root = document.documentElement;
-    if (!root.classList.contains("booting")) return;
 
     let timer: number | undefined;
     let finished = false;
@@ -55,6 +59,7 @@ export function Boot() {
         sessionStorage.setItem("yg-boot", "1");
       } catch {}
       root.classList.remove("booting");
+      root.removeAttribute(SKIP_ATTRIBUTE);
       setPhase("out");
       timer = window.setTimeout(() => setPhase("gone"), 520);
     }
@@ -73,7 +78,8 @@ export function Boot() {
 
     finishRef.current = finish;
     window.addEventListener("keydown", finish);
-    timer = window.setTimeout(next, 0);
+    // A key or click before hydration was recorded by the inline script in the root layout.
+    timer = window.setTimeout(root.hasAttribute(SKIP_ATTRIBUTE) ? finish : next, 0);
 
     return () => {
       window.clearTimeout(timer);
@@ -81,7 +87,7 @@ export function Boot() {
     };
   }, []);
 
-  if (phase === "gone") return null;
+  if (skipped || phase === "gone") return null;
 
   return (
     <div
