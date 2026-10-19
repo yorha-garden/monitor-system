@@ -10,3 +10,8 @@ export const SKIP_ATTRIBUTE = "data-skip";
 export function isBooting() {
   return document.documentElement.classList.contains("booting");
 }
+
+// Unlike `booting`, `booted` never changes after the inline script sets it.
+export function isBootSkipped() {
+  return document.documentElement.classList.contains("booted");
+}

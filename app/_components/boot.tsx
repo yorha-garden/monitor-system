@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { isBooting, SKIP_ATTRIBUTE } from "./boot-state";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { isBootSkipped, isBooting, SKIP_ATTRIBUTE } from "./boot-state";
 
 // [label, status, delay before the next line in ms]
 const LINES: [string, string | null, number][] = [
@@ -33,7 +33,12 @@ function format(label: string, status: string | null) {
   return `${label} ${".".repeat(dots)} ${status}`;
 }
 
+const subscribe = () => () => {};
+
 export function Boot() {
+  // The server always renders the overlay (CSS hides it under `html.booted` until hydration); on the
+  // client it is dropped right after hydration when the inline script skipped the sequence.
+  const skipped = useSyncExternalStore(subscribe, isBootSkipped, () => false);
   const [shown, setShown] = useState(0);
   const [phase, setPhase] = useState<"running" | "out" | "gone">("running");
   const finishRef = useRef<() => void>(undefined);
@@ -82,7 +87,7 @@ export function Boot() {
     };
   }, []);
 
-  if (phase === "gone") return null;
+  if (skipped || phase === "gone") return null;
 
   return (
     <div
