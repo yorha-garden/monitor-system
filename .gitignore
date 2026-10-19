@@ -17,3 +17,17 @@ Thumbs.db
 
 # Local agent settings
 .claude/settings.local.json
+
+# Dependencies
+/node_modules
+
+# Next.js build output
+/.next/
+/out/
+/build
+/coverage
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
