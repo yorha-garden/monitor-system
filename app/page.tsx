@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Clock } from "./_components/clock";
+import { ModeSwitch } from "./_components/mode-switch";
 import { Sections, type Section } from "./_components/sections";
 
 const OPERATOR_URL = "https://al.is-a.dev";
@@ -98,12 +99,7 @@ export default function Home() {
           <span className="sq"></span>YoRHa <span className="jp">ヨルハ</span>
         </div>
         <div className="sys">
-          <button
-            type="button"
-            className="blink"
-            title="Toggle display mode"
-            aria-label="Toggle display mode"
-          ></button>
+          <ModeSwitch />
           <span>SYSTEM ONLINE</span>
           <span aria-hidden="true">·</span>
           <Clock />

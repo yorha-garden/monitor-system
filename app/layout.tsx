@@ -37,10 +37,11 @@ export const viewport: Viewport = {
   themeColor: "#d3cfb8",
 };
 
-// Runs before first paint: decides whether the boot sequence plays (and locks scrolling while it
-// does), so returning visitors never see the overlay flash in before hydration.
+// Runs before first paint: restores the saved display mode and decides whether the boot sequence
+// plays (locking scrolling while it does), so neither flashes in before hydration.
 const bootScript = `(function () {
   var root = document.documentElement;
+  try { if (localStorage.getItem("yg-inv") === "1") root.classList.add("inv"); } catch (e) {}
   var seen = false;
   try { seen = sessionStorage.getItem("yg-boot") === "1"; } catch (e) {}
   var reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
