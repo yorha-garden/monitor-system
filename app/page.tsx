@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Clock } from "./_components/clock";
+import { GlitchTitle } from "./_components/glitch-title";
 import { ModeSwitch } from "./_components/mode-switch";
 import { Sections, type Section } from "./_components/sections";
 
@@ -114,9 +115,7 @@ export default function Home() {
         <i className="c c4"></i>
 
         <div className="hero">
-          <h1 className="title" data-text="YoRHa GARDEN">
-            YoRHa GARDEN
-          </h1>
+          <GlitchTitle text="YoRHa GARDEN" />
           <p className="sub">
             Development · staging unit
             <br />
