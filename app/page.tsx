@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Clock } from "./_components/clock";
 import { Sections, type Section } from "./_components/sections";
 
 const OPERATOR_URL = "https://al.is-a.dev";
@@ -105,7 +106,7 @@ export default function Home() {
           ></button>
           <span>SYSTEM ONLINE</span>
           <span aria-hidden="true">·</span>
-          <time dateTime="">--:--:--</time>
+          <Clock />
           <span>UTC</span>
         </div>
       </header>
