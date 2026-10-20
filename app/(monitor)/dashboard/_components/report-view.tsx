@@ -66,22 +66,22 @@ function TunnelPanel({ tunnel, report }: { tunnel: Tunnel; report: Report }) {
               <thead>
                 <tr>
                   <th>Server</th>
+                  <th>Up</th>
                   <th>Edges</th>
                   <th>Version</th>
                   <th>Arch</th>
-                  <th>Up</th>
                 </tr>
               </thead>
               <tbody>
                 {tunnel.connectors.map((c) => (
                   <tr key={c.id}>
                     <td className="mon-strong">{c.originIps.join(", ") || "—"}</td>
-                    <td>{c.edges.join(" ") || "—"}</td>
-                    <td>{c.version}</td>
-                    <td>{c.arch}</td>
                     <td>
                       <Since iso={c.runAt} now={generatedAt} />
                     </td>
+                    <td>{c.edges.join(" ") || "—"}</td>
+                    <td>{c.version}</td>
+                    <td>{c.arch}</td>
                   </tr>
                 ))}
               </tbody>
@@ -97,12 +97,12 @@ function TunnelPanel({ tunnel, report }: { tunnel: Tunnel; report: Report }) {
             <thead>
               <tr>
                 <th>Hostname</th>
-                <th>Service</th>
                 <th>Check</th>
                 <th className="mon-num">Latency</th>
                 <th className="mon-num">Req 24h</th>
                 <th className="mon-num">4xx</th>
                 <th className="mon-num">5xx</th>
+                <th>Service</th>
               </tr>
             </thead>
             <tbody>
@@ -115,7 +115,6 @@ function TunnelPanel({ tunnel, report }: { tunnel: Tunnel; report: Report }) {
                       {route.hostname}
                       {route.path ? <span className="mon-path">{route.path}</span> : null}
                     </td>
-                    <td>{route.service}</td>
                     <td>
                       {probe ? (
                         <span className={`mon-check mon-check--${probe.state}`}>
@@ -132,6 +131,7 @@ function TunnelPanel({ tunnel, report }: { tunnel: Tunnel; report: Report }) {
                     <td className={t?.serverErrors ? "mon-num mon-alert" : "mon-num"}>
                       {traffic ? number.format(t?.serverErrors ?? 0) : "—"}
                     </td>
+                    <td>{route.service}</td>
                   </tr>
                 );
               })}
