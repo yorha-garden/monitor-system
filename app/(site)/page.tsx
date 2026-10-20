@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
-import { Clock } from "./_components/clock";
-import { GlitchTitle } from "./_components/glitch-title";
-import { ModeSwitch } from "./_components/mode-switch";
-import { Sections, type Section } from "./_components/sections";
+import { Clock } from "../_components/clock";
+import { GlitchTitle } from "../_components/glitch-title";
+import { ModeSwitch } from "../_components/mode-switch";
+import { Sections, type Section } from "../_components/sections";
 
 const OPERATOR_URL = "https://al.is-a.dev";
 

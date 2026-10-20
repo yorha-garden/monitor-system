@@ -1,8 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
+import { MOCK_ORIGIN, MOCK_PORT, MONITOR_ENV, PORT as port, SITE_ORIGIN as baseURL } from "./tests/monitor-env";
 
-// A port of its own, so the suite never collides with `npm run dev` on 3000.
-const port = Number(process.env.PLAYWRIGHT_PORT ?? 3100);
-const baseURL = `http://127.0.0.1:${port}`;
 
 export default defineConfig({
   testDir: "./tests",
@@ -17,10 +15,20 @@ export default defineConfig({
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   // Tests run against the production build, which is what gets deployed. CI has already built it
   // in an earlier step, so only local runs build here.
-  webServer: {
-    command: `${process.env.CI ? "" : "npm run build && "}npm start -- --port ${port}`,
-    url: baseURL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 180_000,
-  },
+  webServer: [
+    // Mock Cloudflare API and Access keys for the dashboard tests.
+    {
+      command: `node tests/mock/cloudflare.mjs ${MOCK_PORT}`,
+      url: `${MOCK_ORIGIN}/health`,
+      reuseExistingServer: !process.env.CI,
+    },
+    {
+      command: `${process.env.CI ? "" : "npm run build && "}npm start -- --port ${port}`,
+      url: baseURL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 180_000,
+      // The monitor settings are read at request time, so the CI build doesn't need them.
+      env: { ...process.env, ...MONITOR_ENV } as Record<string, string>,
+    },
+  ],
 });
