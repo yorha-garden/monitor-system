@@ -59,6 +59,10 @@ html.inv body::after{mix-blend-mode:screen;opacity:.14}
 .jp{font-family:var(--jp);font-weight:400;letter-spacing:.32em;color:var(--ink-2)}
 .sys{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:.74rem;font-weight:400;letter-spacing:.1em;text-transform:none;color:var(--ink-2)}
 .sys time{color:var(--ink)}
+.sys-link{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--ink);padding-bottom:1px}
+.sys-link:hover{background:var(--ink);color:var(--paper)}
+.sys{flex-wrap:wrap;row-gap:4px}
+.sys > *{white-space:nowrap}
 .blink{width:.65em;height:.65em;background:var(--alert);animation:blink 1.4s steps(2,start) infinite;cursor:pointer;border:0;padding:0;display:inline-block}
 .blink:focus-visible{outline:1px solid var(--ink);outline-offset:3px}
 @keyframes blink{to{visibility:hidden}}

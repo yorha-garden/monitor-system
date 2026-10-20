@@ -7,6 +7,7 @@ import { LiveStatus, StatusReadout } from "./_components/live-status";
 import { Row } from "./_components/row";
 
 const OPERATOR_URL = "https://al.is-a.dev";
+const MONITOR_URL = "https://monitor.yorhagarden.xyz";
 
 const SECTIONS: Section[] = [
   {
@@ -68,6 +69,26 @@ const SECTIONS: Section[] = [
       </>
     ),
   },
+  {
+    label: "Monitor",
+    jp: "監視",
+    body: (
+      <>
+        <a className="big" href={MONITOR_URL}>
+          <span className="sq"></span>monitor ↗
+        </a>
+        <p>
+          Live tunnel, connector and uptime status for every unit of the garden, across all of its
+          servers. Restricted to authorized units: sign-in goes through Cloudflare Access.
+        </p>
+        <dl className="data">
+          <Row label="Watches">Tunnels · Connectors · Uptime · Traffic</Row>
+          <Row label="Refresh">Every 30 s</Row>
+          <Row label="Clearance">Cloudflare Access</Row>
+        </dl>
+      </>
+    ),
+  },
 ];
 
 export default function Home() {
@@ -83,6 +104,10 @@ export default function Home() {
           <span aria-hidden="true">·</span>
           <Clock />
           <span>UTC</span>
+          <span aria-hidden="true">·</span>
+          <a className="sys-link" href={MONITOR_URL}>
+            MONITOR ↗
+          </a>
         </div>
       </header>
 
@@ -110,7 +135,7 @@ export default function Home() {
               <br />
               Recommend: observe, do not rely.
               <br />
-              ↑↓ or 1–4 to navigate.
+              ↑↓ or 1–5 to navigate.
             </aside>
           }
         />
