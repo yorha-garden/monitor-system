@@ -8,6 +8,8 @@ const origin = `http://127.0.0.1:${port}`;
 const ACCOUNT = "acc-test";
 const ZONE = "zone-test";
 const TOKEN = "test-token";
+// Same account, but without Zone > DNS > Read.
+const TOKEN_NO_DNS = "test-token-no-dns";
 
 const ago = (ms) => new Date(Date.now() - ms).toISOString();
 const HOUR = 3_600_000;
@@ -17,10 +19,11 @@ const tunnels = [
   { id: "t-beta", name: "garden-beta", status: "degraded", config_src: "cloudflare", conns_active_at: ago(HOUR) },
   { id: "t-gamma", name: "garden-gamma", status: "down", config_src: "cloudflare", conns_inactive_at: ago(3 * HOUR) },
   { id: "t-other", name: "other-site", status: "healthy", config_src: "cloudflare" },
-  { id: "t-local", name: "local-yaml", status: "healthy", config_src: "local" },
+  { id: "t-local", name: "garden-local", status: "healthy", config_src: "local", conns_active_at: ago(20 * HOUR) },
+  { id: "t-unrouted", name: "local-unrouted", status: "down", config_src: "local" },
 ];
 
-// Two servers: 203.0.113.10 runs one connector, 198.51.100.20 runs two.
+// Three servers: 203.0.113.10 and 192.0.2.50 run one connector each, 198.51.100.20 runs two.
 const connections = {
   "t-alpha": [
     { id: "c-a1", arch: "linux_amd64", version: "2026.9.3", run_at: ago(5 * HOUR), conns: [
@@ -37,6 +40,11 @@ const connections = {
     ] },
   ],
   "t-gamma": [],
+  "t-local": [
+    { id: "c-l1", arch: "linux_amd64", version: "2026.7.1", run_at: ago(20 * HOUR), conns: [
+      { colo_name: "hkg01", origin_ip: "192.0.2.50" },
+    ] },
+  ],
   "t-other": [{ id: "c-o1", version: "2026.9.3", conns: [{ colo_name: "nrt01", origin_ip: "192.0.2.1" }] }],
 };
 
@@ -51,12 +59,34 @@ const ingress = {
   "t-other": [{ hostname: "other.example", service: "http://localhost:9000" }, { service: "http_status:404" }],
 };
 
+// Tunnel hostnames are proxied CNAMEs to <tunnel-id>.cfargotunnel.com. garden-local is configured
+// with a local config.yml, so these records are the only place its hostnames show up.
+const tunnelTarget = (id) => `${id}.cfargotunnel.com`;
+const dnsRecords = [
+  { name: "yorhagarden.test", type: "CNAME", content: tunnelTarget("t-alpha"), proxied: true },
+  { name: "monitor.yorhagarden.test", type: "CNAME", content: tunnelTarget("t-alpha"), proxied: true },
+  { name: "api.yorhagarden.test", type: "CNAME", content: tunnelTarget("t-beta"), proxied: true },
+  // Not in garden-beta's ingress rules, which stay authoritative for a remotely managed tunnel.
+  { name: "stale.yorhagarden.test", type: "CNAME", content: tunnelTarget("t-beta"), proxied: true },
+  { name: "old.yorhagarden.test", type: "CNAME", content: tunnelTarget("t-gamma"), proxied: true },
+  { name: "shop.yorhagarden.test", type: "CNAME", content: tunnelTarget("t-local"), proxied: true },
+  { name: "files.yorhagarden.test", type: "CNAME", content: tunnelTarget("t-local"), proxied: true },
+  { name: "raw.yorhagarden.test", type: "CNAME", content: tunnelTarget("t-local"), proxied: false },
+  { name: "ghost.yorhagarden.test", type: "CNAME", content: tunnelTarget("t-deleted"), proxied: true },
+  { name: "www.yorhagarden.test", type: "CNAME", content: "yorhagarden.test", proxied: true },
+  { name: "yorhagarden.test", type: "TXT", content: "v=spf1 -all", proxied: false },
+].map((record, i) => ({ id: `dns-${i}`, ...record }));
+// Smaller than any per_page the dashboard asks for, so its pagination is exercised.
+const DNS_PAGE_SIZE = 3;
+
 const traffic = [
   ["yorhagarden.test", 200, 1200],
   ["yorhagarden.test", 404, 30],
   ["api.yorhagarden.test", 200, 50],
   ["api.yorhagarden.test", 502, 7],
   ["monitor.yorhagarden.test", 200, 10],
+  ["shop.yorhagarden.test", 200, 40],
+  ["files.yorhagarden.test", 503, 4],
 ];
 
 const probes = {
@@ -64,6 +94,8 @@ const probes = {
   "monitor.yorhagarden.test": 302,
   "api.yorhagarden.test": 502,
   "old.yorhagarden.test": 530,
+  "shop.yorhagarden.test": 200,
+  "files.yorhagarden.test": 503,
 };
 
 const { publicKey, privateKey } = await generateKeyPair("RS256");
@@ -111,9 +143,23 @@ createServer(async (req, res) => {
   }
 
   if (!path.startsWith("/client/v4/")) return json(res, 404, fail(7003, "No route"));
-  if (req.headers.authorization !== `Bearer ${TOKEN}`) return json(res, 403, fail(10000, "Authentication error"));
+  const token = req.headers.authorization?.replace(/^Bearer /, "");
+  if (token !== TOKEN && token !== TOKEN_NO_DNS) return json(res, 403, fail(10000, "Authentication error"));
 
   const api = path.slice("/client/v4".length);
+  if (api === `/zones/${ZONE}/dns_records`) {
+    if (token === TOKEN_NO_DNS) return json(res, 403, fail(10000, "Authentication error"));
+    const type = url.searchParams.get("type");
+    const matching = dnsRecords.filter((r) => !type || r.type === type);
+    const page = Number(url.searchParams.get("page") ?? 1);
+    const total_pages = Math.max(1, Math.ceil(matching.length / DNS_PAGE_SIZE));
+    const result = matching.slice((page - 1) * DNS_PAGE_SIZE, page * DNS_PAGE_SIZE);
+    return json(res, 200, {
+      ...ok(result),
+      result_info: { page, per_page: DNS_PAGE_SIZE, count: result.length, total_count: matching.length, total_pages },
+    });
+  }
+
   if (api === `/accounts/${ACCOUNT}/cfd_tunnel`) return json(res, 200, ok(tunnels));
 
   const tunnelPath = api.match(new RegExp(`^/accounts/${ACCOUNT}/cfd_tunnel/([^/]+)/(connections|configurations)$`));
