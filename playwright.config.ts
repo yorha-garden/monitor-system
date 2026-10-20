@@ -23,7 +23,8 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
     },
     {
-      command: `${process.env.CI ? "" : "npm run build && "}npm start -- --port ${port}`,
+      // Bound to 127.0.0.1 like the live service, whose routing depends on the bind address.
+      command: `${process.env.CI ? "" : "npm run build && "}npm start -- --port ${port} --hostname 127.0.0.1`,
       url: baseURL,
       reuseExistingServer: !process.env.CI,
       timeout: 180_000,
