@@ -47,6 +47,20 @@ test.describe("dashboard access", () => {
     expect((await request.get(`${DASHBOARD_ORIGIN}/dashboard`, { headers })).status()).toBe(200);
     expect((await request.get(`${DASHBOARD_ORIGIN}/elsewhere`, { headers })).status()).toBe(404);
   });
+
+  // cloudflared forwards requests to the plain-HTTP origin with X-Forwarded-Proto: https. The
+  // redirect from / must lead to the visitor's own https origin, never to the server's localhost.
+  test("works behind a tunnel that terminates TLS", async ({ request }) => {
+    const headers = { [ACCESS_JWT_HEADER]: await accessToken(), "X-Forwarded-Proto": "https" };
+    const visitorOrigin = DASHBOARD_ORIGIN.replace("http:", "https:");
+    const root = await request.get(`${DASHBOARD_ORIGIN}/`, { headers, maxRedirects: 0 });
+    expect(root.status()).toBe(307);
+    expect(new URL(root.headers().location, visitorOrigin).href).toBe(`${visitorOrigin}/dashboard`);
+    // The test server itself only speaks http, so fetch the redirect target directly.
+    const page = await request.get(`${DASHBOARD_ORIGIN}/dashboard`, { headers });
+    expect(page.status()).toBe(200);
+    expect(await page.text()).toContain("garden-alpha");
+  });
 });
 
 test.describe("dashboard report", () => {
