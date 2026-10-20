@@ -69,6 +69,14 @@ export type ApiIngressRule = {
   path?: string;
 };
 
+// A DNS record as listed by GET /zones/{zone_id}/dns_records.
+export type ApiDnsRecord = {
+  name: string;
+  type: string;
+  content: string;
+  proxied?: boolean;
+};
+
 export type ApiTrafficRow = {
   count: number;
   dimensions: { clientRequestHTTPHost: string; edgeResponseStatus: number };
@@ -93,6 +101,43 @@ export function toRoutes(ingress: ApiIngressRule[] | undefined, domain: string):
       service: rule.service,
       ...(rule.path ? { path: rule.path } : {}),
     }));
+}
+
+// Shown in the service column for hostnames found through DNS: the service they reach is set in
+// the tunnel's local config.yml, which the API can't see.
+export const LOCAL_CONFIG_SERVICE = "local config";
+
+// `<tunnel-id>.cfargotunnel.com` (or `.fed-cfargotunnel.com` on FedRAMP accounts) -> tunnel id.
+export function tunnelIdFromTarget(content: string) {
+  return content.toLowerCase().match(/^([^.]+)\.(?:fed-)?cfargotunnel\.com\.?$/)?.[1] ?? null;
+}
+
+// Hostnames under the domain that each tunnel serves, from the proxied CNAMEs pointing at it.
+// This works whatever the tunnel's config source, so it also covers tunnels run from a local
+// config.yml.
+export function dnsHostnamesByTunnel(records: ApiDnsRecord[], domain: string): Map<string, string[]> {
+  const byTunnel = new Map<string, Set<string>>();
+  for (const record of records) {
+    if (record.type !== "CNAME" || record.proxied !== true) continue;
+    if (!isDomainHostname(record.name, domain)) continue;
+    const id = tunnelIdFromTarget(record.content);
+    if (!id) continue;
+    if (!byTunnel.has(id)) byTunnel.set(id, new Set());
+    byTunnel.get(id)!.add(record.name.toLowerCase());
+  }
+  return new Map([...byTunnel].map(([id, hosts]) => [id, [...hosts].sort()]));
+}
+
+// Routes of one tunnel. A remotely managed tunnel's ingress rules are authoritative and say which
+// service each hostname reaches. For any other tunnel only DNS shows its hostnames.
+export function tunnelRoutes(
+  tunnel: ApiTunnel,
+  ingress: ApiIngressRule[] | undefined,
+  dnsHostnames: string[] | undefined,
+  domain: string,
+): Route[] {
+  if (tunnel.config_src === "cloudflare") return toRoutes(ingress, domain);
+  return (dnsHostnames ?? []).map((hostname) => ({ hostname, service: LOCAL_CONFIG_SERVICE }));
 }
 
 function unique(values: (string | undefined)[]) {

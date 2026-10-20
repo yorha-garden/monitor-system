@@ -180,8 +180,14 @@ export function ReportView({ report, viewer }: { report: Report; viewer?: string
         </p>
       ))}
 
+      {report.notices.map((notice) => (
+        <p key={notice} className="mon-notice" role="status">
+          {notice}
+        </p>
+      ))}
+
       {tunnels.length === 0 && report.errors.length === 0 ? (
-        <p className="mon-empty">No remotely managed tunnels route any {report.domain} hostname.</p>
+        <p className="mon-empty">No tunnels route any {report.domain} hostname.</p>
       ) : null}
 
       {tunnels.map((tunnel) => (

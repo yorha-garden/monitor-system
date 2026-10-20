@@ -1,10 +1,12 @@
 import "server-only";
 import type { MonitorConfig } from "./config";
 import {
+  dnsHostnamesByTunnel,
   summarizeTraffic,
-  toRoutes,
   toTunnel,
+  tunnelRoutes,
   type ApiConnectorClient,
+  type ApiDnsRecord,
   type ApiIngressRule,
   type ApiTrafficRow,
   type ApiTunnel,
@@ -18,15 +20,24 @@ type Envelope<T> = {
   success: boolean;
   errors?: { code: number; message: string }[];
   result: T;
+  result_info?: { page?: number; total_pages?: number };
 };
 
-export class CloudflareApiError extends Error {}
+export class CloudflareApiError extends Error {
+  constructor(
+    message: string,
+    // HTTP status of the failed request, when there was a response.
+    readonly status?: number,
+  ) {
+    super(message);
+  }
+}
 
 function authHeaders(config: MonitorConfig) {
   return { Authorization: `Bearer ${config.apiToken}`, "Content-Type": "application/json" };
 }
 
-async function api<T>(config: MonitorConfig, path: string): Promise<T> {
+async function request<T>(config: MonitorConfig, path: string): Promise<Envelope<T>> {
   const res = await fetch(`${config.apiBaseUrl}${path}`, {
     headers: authHeaders(config),
     cache: "no-store",
@@ -35,30 +46,71 @@ async function api<T>(config: MonitorConfig, path: string): Promise<T> {
   const body = (await res.json().catch(() => null)) as Envelope<T> | null;
   if (!res.ok || !body?.success) {
     const detail = body?.errors?.map((e) => `${e.code} ${e.message}`).join("; ");
-    throw new CloudflareApiError(`GET ${path.split("?")[0]} failed: ${detail || `HTTP ${res.status}`}`);
+    throw new CloudflareApiError(
+      `GET ${path.split("?")[0]} failed: ${detail || `HTTP ${res.status}`}`,
+      res.status,
+    );
   }
-  return body.result;
+  return body;
+}
+
+async function api<T>(config: MonitorConfig, path: string): Promise<T> {
+  return (await request<T>(config, path)).result;
+}
+
+// Every page of a paginated list endpoint. `path` must already have a query string.
+async function apiList<T>(config: MonitorConfig, path: string): Promise<T[]> {
+  const items: T[] = [];
+  for (let page = 1; ; page++) {
+    const body = await request<T[]>(config, `${path}&page=${page}`);
+    items.push(...body.result);
+    if (page >= (body.result_info?.total_pages ?? 1) || body.result.length === 0) return items;
+  }
+}
+
+// The zone's CNAME records. Tunnel public hostnames are proxied CNAMEs to
+// `<tunnel-id>.cfargotunnel.com`, which is how tunnels with a local config.yml are found.
+// Needs the token's Zone > DNS > Read permission.
+export async function getZoneCnameRecords(config: MonitorConfig): Promise<ApiDnsRecord[]> {
+  const zone = `/zones/${encodeURIComponent(config.zoneId)}`;
+  return apiList<ApiDnsRecord>(config, `${zone}/dns_records?type=CNAME&per_page=1000`);
 }
 
 // Tunnels in the account that route at least one hostname under the monitored domain, with their
 // connectors (one per running cloudflared, wherever it runs) and routes.
 //
-// Only remotely managed tunnels expose their routes through the API. A tunnel configured with a
-// local config.yml has no routes here and is left out.
-export async function getDomainTunnels(config: MonitorConfig): Promise<Tunnel[]> {
+// Remotely managed tunnels report their routes through their ingress rules. Tunnels run from a
+// local config.yml are matched through the zone's DNS records instead, passed in as `dnsRecords`.
+// When those are unavailable (null), only remotely managed tunnels appear.
+export async function getDomainTunnels(
+  config: MonitorConfig,
+  dnsRecords: Promise<ApiDnsRecord[] | null>,
+): Promise<Tunnel[]> {
   const account = `/accounts/${encodeURIComponent(config.accountId)}`;
-  const tunnels = await api<ApiTunnel[]>(config, `${account}/cfd_tunnel?is_deleted=false&per_page=1000`);
+  const [tunnels, records] = await Promise.all([
+    api<ApiTunnel[]>(config, `${account}/cfd_tunnel?is_deleted=false&per_page=1000`),
+    dnsRecords,
+  ]);
+  const dnsHostnames = dnsHostnamesByTunnel(records ?? [], config.domain);
 
   const detailed = await Promise.all(
     tunnels
-      .filter((t) => t.config_src === "cloudflare")
+      .filter((t) => t.config_src === "cloudflare" || dnsHostnames.has(t.id.toLowerCase()))
       .map(async (tunnel) => {
         const base = `${account}/cfd_tunnel/${encodeURIComponent(tunnel.id)}`;
+        // Locally configured tunnels have no remote configuration to fetch.
         const [configuration, clients] = await Promise.all([
-          api<{ config?: { ingress?: ApiIngressRule[] } }>(config, `${base}/configurations`),
+          tunnel.config_src === "cloudflare"
+            ? api<{ config?: { ingress?: ApiIngressRule[] } }>(config, `${base}/configurations`)
+            : null,
           api<ApiConnectorClient[]>(config, `${base}/connections`),
         ]);
-        const routes = toRoutes(configuration.config?.ingress, config.domain);
+        const routes = tunnelRoutes(
+          tunnel,
+          configuration?.config?.ingress,
+          dnsHostnames.get(tunnel.id.toLowerCase()),
+          config.domain,
+        );
         return routes.length > 0 ? toTunnel(tunnel, clients, routes) : null;
       }),
   );

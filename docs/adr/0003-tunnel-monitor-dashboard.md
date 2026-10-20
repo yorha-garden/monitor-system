@@ -1,6 +1,7 @@
 # 3. Monitor Cloudflare Tunnels through the Cloudflare API, behind Cloudflare Access
 
-- Status: accepted
+- Status: accepted; the consequence that locally configured tunnels don't appear is superseded
+  by [ADR 0004](0004-find-local-tunnels-through-dns.md)
 - Date: 2026-10-20
 
 ## Context

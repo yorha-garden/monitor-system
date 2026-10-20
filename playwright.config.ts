@@ -1,5 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
-import { MOCK_ORIGIN, MOCK_PORT, MONITOR_ENV, PORT as port, SITE_ORIGIN as baseURL } from "./tests/monitor-env";
+import {
+  MOCK_ORIGIN,
+  MOCK_PORT,
+  MONITOR_ENV,
+  MONITOR_ENV_NO_DNS,
+  NO_DNS_PORT,
+  PORT as port,
+  SITE_ORIGIN as baseURL,
+} from "./tests/monitor-env";
 
 
 export default defineConfig({
@@ -30,6 +38,14 @@ export default defineConfig({
       timeout: 180_000,
       // The monitor settings are read at request time, so the CI build doesn't need them.
       env: { ...process.env, ...MONITOR_ENV } as Record<string, string>,
+    },
+    // The same build with a token that can't read DNS records. Servers start in order, so the
+    // build above has finished by now.
+    {
+      command: `npm start -- --port ${NO_DNS_PORT} --hostname 127.0.0.1`,
+      url: `http://127.0.0.1:${NO_DNS_PORT}`,
+      reuseExistingServer: !process.env.CI,
+      env: { ...process.env, ...MONITOR_ENV_NO_DNS } as Record<string, string>,
     },
   ],
 });

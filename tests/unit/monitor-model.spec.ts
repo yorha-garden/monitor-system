@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import {
   classifyStatus,
+  dnsHostnamesByTunnel,
   formatDuration,
   isDomainHostname,
   probeUrl,
@@ -9,6 +10,8 @@ import {
   toConnector,
   toRoutes,
   toTunnel,
+  tunnelIdFromTarget,
+  tunnelRoutes,
 } from "../../lib/monitor/model";
 
 test.describe("monitor model", () => {
@@ -34,6 +37,53 @@ test.describe("monitor model", () => {
       { hostname: "api.yorhagarden.xyz", service: "http://localhost:4000", path: "/v1" },
     ]);
     expect(toRoutes(undefined, "yorhagarden.xyz")).toEqual([]);
+  });
+
+  test("reads the tunnel id from a cfargotunnel.com target", () => {
+    const id = "c0ffee00-1234-4abc-8def-0123456789ab";
+    expect(tunnelIdFromTarget(`${id}.cfargotunnel.com`)).toBe(id);
+    expect(tunnelIdFromTarget(`${id.toUpperCase()}.CFARGOTUNNEL.COM.`)).toBe(id);
+    expect(tunnelIdFromTarget(`${id}.fed-cfargotunnel.com`)).toBe(id);
+    expect(tunnelIdFromTarget("yorhagarden.xyz")).toBeNull();
+    expect(tunnelIdFromTarget(`${id}.cfargotunnel.com.evil.com`)).toBeNull();
+    expect(tunnelIdFromTarget(`x.${id}.cfargotunnel.com`)).toBeNull();
+  });
+
+  test("maps each tunnel to the proxied CNAMEs under the domain that point at it", () => {
+    const cname = (name: string, content: string, proxied = true) => ({ name, type: "CNAME", content, proxied });
+    const hosts = dnsHostnamesByTunnel(
+      [
+        cname("Shop.yorhagarden.xyz", "t1.cfargotunnel.com"),
+        cname("api.yorhagarden.xyz", "t1.cfargotunnel.com"),
+        cname("api.yorhagarden.xyz", "t1.cfargotunnel.com"),
+        cname("yorhagarden.xyz", "t2.cfargotunnel.com"),
+        cname("raw.yorhagarden.xyz", "t2.cfargotunnel.com", false),
+        cname("www.yorhagarden.xyz", "yorhagarden.xyz"),
+        cname("lokerin.other.example", "t3.cfargotunnel.com"),
+        { name: "txt.yorhagarden.xyz", type: "TXT", content: "t4.cfargotunnel.com", proxied: true },
+      ],
+      "yorhagarden.xyz",
+    );
+    expect(Object.fromEntries(hosts)).toEqual({
+      t1: ["api.yorhagarden.xyz", "shop.yorhagarden.xyz"],
+      t2: ["yorhagarden.xyz"],
+    });
+  });
+
+  test("takes remote tunnels' routes from ingress and local tunnels' from DNS", () => {
+    const ingress = [{ hostname: "yorhagarden.xyz", service: "http://localhost:8080" }, { service: "http_status:404" }];
+    const dns = ["yorhagarden.xyz", "extra.yorhagarden.xyz"];
+    const remote = { id: "t1", name: "remote", status: "healthy" as const, config_src: "cloudflare" as const };
+    const local = { id: "t2", name: "local", status: "healthy" as const, config_src: "local" as const };
+
+    expect(tunnelRoutes(remote, ingress, dns, "yorhagarden.xyz")).toEqual([
+      { hostname: "yorhagarden.xyz", service: "http://localhost:8080" },
+    ]);
+    expect(tunnelRoutes(local, undefined, dns, "yorhagarden.xyz")).toEqual([
+      { hostname: "yorhagarden.xyz", service: "local config" },
+      { hostname: "extra.yorhagarden.xyz", service: "local config" },
+    ]);
+    expect(tunnelRoutes(local, undefined, undefined, "yorhagarden.xyz")).toEqual([]);
   });
 
   test("collapses a connector's edge connections into distinct IPs and locations", () => {

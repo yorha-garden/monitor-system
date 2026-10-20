@@ -1,15 +1,15 @@
 import { ACCESS_JWT_HEADER } from "../lib/monitor/access";
 import { expect, test, type Page } from "./fixtures";
-import { DASHBOARD_ORIGIN, MOCK_ORIGIN, SITE_ORIGIN } from "./monitor-env";
+import { DASHBOARD_ORIGIN, MOCK_ORIGIN, NO_DNS_DASHBOARD_ORIGIN, SITE_ORIGIN } from "./monitor-env";
 
 async function accessToken(params: Record<string, string> = {}) {
   const res = await fetch(`${MOCK_ORIGIN}/__token?${new URLSearchParams(params)}`);
   return res.text();
 }
 
-async function openDashboard(page: Page) {
+async function openDashboard(page: Page, origin = DASHBOARD_ORIGIN) {
   await page.setExtraHTTPHeaders({ [ACCESS_JWT_HEADER]: await accessToken() });
-  await page.goto(`${DASHBOARD_ORIGIN}/`);
+  await page.goto(`${origin}/`);
   await expect(page.locator(".mon-report")).toBeVisible();
 }
 
@@ -69,20 +69,38 @@ test.describe("dashboard report", () => {
   });
 
   test("summarizes the domain's tunnels across servers", async ({ page }) => {
-    await expect(stat(page, "Tunnels healthy")).toHaveText("1/3");
-    await expect(stat(page, "Connectors")).toHaveText("3" + "2 servers");
-    await expect(stat(page, "Hostnames up")).toHaveText("2/4");
-    await expect(stat(page, "Requests 24h")).toHaveText("1,297");
-    await expect(stat(page, "5xx 24h")).toHaveText("7");
+    await expect(stat(page, "Tunnels healthy")).toHaveText("2/4");
+    await expect(stat(page, "Connectors")).toHaveText("4" + "3 servers");
+    await expect(stat(page, "Hostnames up")).toHaveText("3/6");
+    await expect(stat(page, "Requests 24h")).toHaveText("1,341");
+    await expect(stat(page, "5xx 24h")).toHaveText("11");
     await expect(page.locator(".mon-meta")).toContainText("operator@yorhagarden.test");
   });
 
   test("lists only tunnels that route the monitored domain", async ({ page }) => {
     const names = page.locator(".mon-tunnel .ptitle > span:first-child");
-    await expect(names).toHaveText(["garden-alpha", "garden-beta", "garden-gamma"]);
+    await expect(names).toHaveText(["garden-alpha", "garden-beta", "garden-gamma", "garden-local"]);
     await expect(tunnel(page, "garden-alpha").locator(".mon-status")).toHaveText("Healthy");
     await expect(tunnel(page, "garden-beta").locator(".mon-status")).toHaveText("Degraded");
     await expect(tunnel(page, "garden-gamma").locator(".mon-status")).toHaveText("Down");
+    await expect(tunnel(page, "garden-local").locator(".mon-status")).toHaveText("Healthy");
+    await expect(page.locator(".mon-notice")).toHaveCount(0);
+  });
+
+  test("finds a locally configured tunnel's hostnames through DNS", async ({ page }) => {
+    const local = tunnel(page, "garden-local");
+    await expect(local.getByRole("row", { name: /192\.0\.2\.50/ })).toContainText("2026.7.1");
+    await expect(local.locator("tbody .mon-strong").filter({ hasText: "yorhagarden.test" })).toHaveText([
+      "files.yorhagarden.test",
+      "shop.yorhagarden.test",
+    ]);
+    await expect(route(page, "shop.yorhagarden.test")).toContainText(/Up\s*200/);
+    await expect(route(page, "shop.yorhagarden.test")).toContainText("40");
+    await expect(route(page, "shop.yorhagarden.test")).toContainText("local config");
+    await expect(route(page, "files.yorhagarden.test")).toContainText(/Down\s*503/);
+    // Remotely managed tunnels keep their ingress rules: a CNAME without a rule adds nothing.
+    await expect(tunnel(page, "garden-beta")).not.toContainText("stale.yorhagarden.test");
+    await expect(route(page, "api.yorhagarden.test")).toContainText("http://localhost:4000");
   });
 
   test("shows each connector with its server, edges and version", async ({ page }) => {
@@ -100,5 +118,16 @@ test.describe("dashboard report", () => {
     await expect(route(page, "api.yorhagarden.test")).toContainText(/Down\s*502/);
     await expect(route(page, "api.yorhagarden.test").locator(".mon-alert")).toHaveText("7");
     await expect(route(page, "old.yorhagarden.test")).toContainText(/Down\s*530/);
+  });
+});
+
+test.describe("dashboard without DNS access", () => {
+  test("still shows remotely managed tunnels and names the missing permission", async ({ page }) => {
+    await openDashboard(page, NO_DNS_DASHBOARD_ORIGIN);
+    const names = page.locator(".mon-tunnel .ptitle > span:first-child");
+    await expect(names).toHaveText(["garden-alpha", "garden-beta", "garden-gamma"]);
+    await expect(page.locator(".mon-notice")).toHaveText(/local config\.yml are hidden.*Zone > DNS > Read/);
+    await expect(page.locator(".mon-error")).toHaveCount(0);
+    await expect(stat(page, "Hostnames up")).toHaveText("2/4");
   });
 });
