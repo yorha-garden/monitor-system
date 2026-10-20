@@ -21,7 +21,7 @@ html.inv{--warn:#d1a24f}
 .mon-error{margin:0;border:1px solid var(--alert);border-left-width:6px;padding:10px 14px;font-family:var(--mono);font-size:.78rem;line-height:1.7;color:var(--alert);background:color-mix(in srgb,var(--alert) 8%,transparent)}
 .mon-error p{margin:0}
 .mon-error ul{margin:6px 0 0;padding-left:18px}
-.mon-empty{margin:0;font-family:var(--mono);font-size:.78rem;color:var(--ink-2)}
+.mon-empty,.pbody .mon-empty{margin:0;font-family:var(--mono);font-size:.78rem;color:var(--ink-2)}
 
 .mon-tunnel{background:var(--paper-2);border:1px solid var(--ink)}
 .mon-tunnel .pbody{padding:6px 18px 18px}
