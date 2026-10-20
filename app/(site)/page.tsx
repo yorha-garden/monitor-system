@@ -1,7 +1,9 @@
+import { Suspense } from "react";
 import { Clock } from "../_components/clock";
 import { GlitchTitle } from "../_components/glitch-title";
 import { ModeSwitch } from "../_components/mode-switch";
 import { Sections, type Section } from "../_components/sections";
+import { LiveStatus, StatusReadout } from "./_components/live-status";
 import { Row } from "./_components/row";
 
 const OPERATOR_URL = "https://al.is-a.dev";
@@ -32,23 +34,9 @@ const SECTIONS: Section[] = [
     label: "Status",
     jp: "状態",
     body: (
-      <>
-        <dl className="data">
-          <Row label="Vitals" ok>Green</Row>
-          <Row label="Uplink" ok>Tunnel · Connected</Row>
-          <Row label="DNS Delegation" ok>Complete</Row>
-          <Row label="Region">Jakarta · Singapore</Row>
-          <Row label="Environment">Staging</Row>
-          <Row label="Black Box Temp." ok>Normal</Row>
-        </dl>
-        <div className="bar" role="img" aria-label="Build stability 73 percent">
-          <i></i>
-        </div>
-        <div className="barlbl">
-          <span>Build stability</span>
-          <span>73% — it&apos;s staging</span>
-        </div>
-      </>
+      <Suspense fallback={<StatusReadout />}>
+        <LiveStatus />
+      </Suspense>
     ),
   },
   {

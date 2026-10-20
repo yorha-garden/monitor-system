@@ -113,6 +113,8 @@ html.inv body::after{mix-blend-mode:screen;opacity:.14}
 .row dd{margin:0;flex:none;text-align:right;text-transform:uppercase}
 .row dd a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--ink)}
 .row dd.ok::before{content:"■ ";}
+.row dd.alert{color:var(--alert)}
+.row dd.alert::before{content:"■ ";}
 .bar{height:9px;border:1px solid var(--ink);margin:16px 0 6px;position:relative;background:repeating-linear-gradient(90deg,transparent 0 6px,color-mix(in srgb,var(--ink) 14%,transparent) 6px 7px)}
 .bar i{position:absolute;top:1px;bottom:1px;left:1px;width:calc(73% - 2px);background:var(--ink);animation:grow 1.1s cubic-bezier(.2,.8,.2,1)}
 @keyframes grow{from{width:0}}
