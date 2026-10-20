@@ -6,7 +6,8 @@ browser and a light/dark display mode.
 
 It also serves a private **monitor dashboard** on its own hostname (e.g.
 `monitor.yorhagarden.xyz`, behind Cloudflare Access). It shows every Cloudflare Tunnel that routes
-a yorhagarden.xyz hostname, across all servers running `cloudflared`:
+a yorhagarden.xyz hostname, across all servers running `cloudflared`, whether the tunnel is
+managed in the Cloudflare dashboard or run from a local `config.yml`:
 
 - tunnel health and each connector: the server's IP, Cloudflare edge locations, cloudflared
   version and uptime
@@ -93,6 +94,7 @@ or the service's environment, never in the repository.
 1. **API token** (My Profile → API Tokens → Create custom token), read-only:
    - Account → **Cloudflare Tunnel** → Read
    - Zone → **Analytics** → Read, for the yorhagarden.xyz zone
+   - Zone → **DNS** → Read, for the yorhagarden.xyz zone
 
    The account ID and zone ID are on the zone's Overview page.
 2. **Access application** (Zero Trust → Access → Applications → Add → Self-hosted): domain
@@ -105,8 +107,12 @@ or the service's environment, never in the repository.
    that lacks a valid Access token.
 4. Put the variables in `.env.local` next to the app and restart it.
 
-Only remotely managed tunnels (configured in the Cloudflare dashboard) appear: a tunnel run from
-a local `config.yml` has no routes the API can report.
+Remotely managed tunnels (configured in the Cloudflare dashboard) are matched to the domain by
+their ingress rules, which also give each route's service. A tunnel run from a local `config.yml`
+has no rules the API can report, so its hostnames come from the zone's DNS instead: every proxied
+CNAME to `<tunnel-id>.cfargotunnel.com`. Its routes show `local config` as the service, and a
+hostname the tunnel serves without such a CNAME in this zone doesn't appear. Without the DNS permission, the dashboard shows only remotely
+managed tunnels and a notice naming the missing permission.
 
 ## Deployment
 
