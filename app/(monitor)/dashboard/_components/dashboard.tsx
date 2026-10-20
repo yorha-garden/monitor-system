@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { ACCESS_JWT_HEADER, verifyAccessJwt } from "@/lib/monitor/access";
 import { readMonitorConfig } from "@/lib/monitor/config";
 import { isDashboardHost } from "@/lib/monitor/host";
@@ -12,6 +13,8 @@ const REFRESH_SECONDS = 30;
 // The proxy already enforces the hostname and Access token; checking again here keeps the data safe
 // even if a proxy matcher change ever stops covering this route.
 export async function Dashboard() {
+  // Token checks and the report read the clock, so none of this may run in a prerender.
+  await connection();
   const requestHeaders = await headers();
   if (!isDashboardHost(requestHeaders.get("host"))) notFound();
 
