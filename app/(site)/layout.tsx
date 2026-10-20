@@ -6,7 +6,8 @@ import "../globals.css";
 
 export const metadata: Metadata = {
   title: "YoRHa Garden",
-  description: "YoRHa Garden — a development and staging VPS for al.is-a.dev.",
+  description:
+    "YoRHa Garden — a multi-server development and staging host for al.is-a.dev, connected through Cloudflare Tunnels and watched by its own monitor.",
   robots: { index: false, follow: false },
 };
 

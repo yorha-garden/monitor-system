@@ -1,6 +1,6 @@
 import { expect, skipBoot, test, waitForHydration, type Page } from "./fixtures";
 
-const LABELS = ["System", "Status", "Access", "Operator"];
+const LABELS = ["System", "Status", "Access", "Operator", "Monitor"];
 
 const tab = (page: Page, label: string) => page.getByRole("tab", { name: new RegExp(`^${label}`) });
 
@@ -41,12 +41,12 @@ test.describe("section tabs", () => {
     await page.keyboard.press("ArrowUp");
     await expectActive(page, "System");
     await page.keyboard.press("ArrowUp");
-    await expectActive(page, "Operator");
+    await expectActive(page, "Monitor");
     await page.keyboard.press("ArrowDown");
     await expectActive(page, "System");
   });
 
-  test("jump with the 1–4 keys", async ({ page }) => {
+  test("jump with the 1–5 keys", async ({ page }) => {
     for (const [i, label] of [...LABELS.entries()].reverse()) {
       await page.keyboard.press(String(i + 1));
       await expectActive(page, label);

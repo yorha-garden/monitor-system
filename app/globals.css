@@ -59,6 +59,10 @@ html.inv body::after{mix-blend-mode:screen;opacity:.14}
 .jp{font-family:var(--jp);font-weight:400;letter-spacing:.32em;color:var(--ink-2)}
 .sys{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:.74rem;font-weight:400;letter-spacing:.1em;text-transform:none;color:var(--ink-2)}
 .sys time{color:var(--ink)}
+.sys-link{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--ink);padding-bottom:1px}
+.sys-link:hover{background:var(--ink);color:var(--paper)}
+.sys{flex-wrap:wrap;row-gap:4px}
+.sys > *{white-space:nowrap}
 .blink{width:.65em;height:.65em;background:var(--alert);animation:blink 1.4s steps(2,start) infinite;cursor:pointer;border:0;padding:0;display:inline-block}
 .blink:focus-visible{outline:1px solid var(--ink);outline-offset:3px}
 @keyframes blink{to{visibility:hidden}}
@@ -113,6 +117,9 @@ html.inv body::after{mix-blend-mode:screen;opacity:.14}
 .row dd{margin:0;flex:none;text-align:right;text-transform:uppercase}
 .row dd a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--ink)}
 .row dd.ok::before{content:"■ ";}
+.row dd.alert{color:var(--alert)}
+.row dd.alert::before{content:"■ ";}
+@media (max-width:480px){.row dd{flex:0 1 auto;min-width:0}}
 .bar{height:9px;border:1px solid var(--ink);margin:16px 0 6px;position:relative;background:repeating-linear-gradient(90deg,transparent 0 6px,color-mix(in srgb,var(--ink) 14%,transparent) 6px 7px)}
 .bar i{position:absolute;top:1px;bottom:1px;left:1px;width:calc(73% - 2px);background:var(--ink);animation:grow 1.1s cubic-bezier(.2,.8,.2,1)}
 @keyframes grow{from{width:0}}

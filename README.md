@@ -1,8 +1,11 @@
 # YoRHa Garden — monitor-system
 
-Landing page for **yorhagarden.xyz**, the development and staging VPS for
-[al.is-a.dev](https://al.is-a.dev): a single page with a NieR-style boot sequence, a section
-browser and a light/dark display mode.
+Landing page for **yorhagarden.xyz**, the multi-server development and staging host for
+[al.is-a.dev](https://al.is-a.dev), whose servers are connected through Cloudflare Tunnels. It is a
+single page with a NieR-style boot sequence, a section browser and a light/dark display mode. Its
+Status section shows a live summary from the monitor (vitals, tunnels online, hostnames answering,
+edge cities, last check), refreshed at most once a minute and limited to counts so no addresses or
+hostnames are published. The Monitor section and the top bar link to the dashboard.
 
 It also serves a private **monitor dashboard** on its own hostname (e.g.
 `monitor.yorhagarden.xyz`, behind Cloudflare Access). It shows every Cloudflare Tunnel that routes
@@ -71,7 +74,8 @@ and `DASHBOARD_DEV_SKIP_ACCESS=1`, fill in the Cloudflare values, run `npm run d
 
 ## Environment variables
 
-The landing page needs none. The dashboard is configured entirely through the environment (see
+The landing page runs without any: its Status section then reads "Monitor offline". The dashboard,
+and the landing page's live status, are configured entirely through the environment (see
 [.env.example](.env.example)) and stays disabled until `DASHBOARD_HOST` is set. Values are read at
 request time, so a restart is enough after changing them. Keep them in `.env.local` (git-ignored)
 or the service's environment, never in the repository.

@@ -1,20 +1,13 @@
-import type { ReactNode } from "react";
+import { Suspense } from "react";
 import { Clock } from "../_components/clock";
 import { GlitchTitle } from "../_components/glitch-title";
 import { ModeSwitch } from "../_components/mode-switch";
 import { Sections, type Section } from "../_components/sections";
+import { LiveStatus, StatusReadout } from "./_components/live-status";
+import { Row } from "./_components/row";
 
 const OPERATOR_URL = "https://al.is-a.dev";
-
-function Row({ label, ok, children }: { label: string; ok?: boolean; children: ReactNode }) {
-  return (
-    <div className="row">
-      <dt>{label}</dt>
-      <span className="dots"></span>
-      <dd className={ok ? "ok" : undefined}>{children}</dd>
-    </div>
-  );
-}
+const MONITOR_URL = "https://monitor.yorhagarden.xyz";
 
 const SECTIONS: Section[] = [
   {
@@ -23,14 +16,18 @@ const SECTIONS: Section[] = [
     body: (
       <>
         <p>
-          YoRHa Garden is a development and staging VPS operated for <strong>al.is-a.dev</strong>.
-          Everything running here is unfinished by design — builds are tested, broken, and rebuilt
-          before anything reaches production.
+          YoRHa Garden is a multi-server development and staging host operated for{" "}
+          <strong>al.is-a.dev</strong>. Each unit runs on one of its servers and reaches the network
+          through Cloudflare Tunnels, with no open ports, and a monitor keeps watch over all of them.
+          Everything here is unfinished by design: builds are tested, broken and rebuilt before
+          anything reaches production.
         </p>
         <dl className="data">
           <Row label="Unit">YoRHa Garden</Row>
           <Row label="Designation">yorhagarden.xyz</Row>
           <Row label="Purpose">Development / Staging</Row>
+          <Row label="Topology">Multi-server</Row>
+          <Row label="Uplink">Cloudflare Tunnels</Row>
           <Row label="Operator">
             <a href={OPERATOR_URL}>al.is-a.dev</a>
           </Row>
@@ -42,23 +39,9 @@ const SECTIONS: Section[] = [
     label: "Status",
     jp: "状態",
     body: (
-      <>
-        <dl className="data">
-          <Row label="Vitals" ok>Green</Row>
-          <Row label="Uplink" ok>Tunnel · Connected</Row>
-          <Row label="DNS Delegation" ok>Complete</Row>
-          <Row label="Region">Jakarta · Singapore</Row>
-          <Row label="Environment">Staging</Row>
-          <Row label="Black Box Temp." ok>Normal</Row>
-        </dl>
-        <div className="bar" role="img" aria-label="Build stability 73 percent">
-          <i></i>
-        </div>
-        <div className="barlbl">
-          <span>Build stability</span>
-          <span>73% — it&apos;s staging</span>
-        </div>
-      </>
+      <Suspense fallback={<StatusReadout />}>
+        <LiveStatus />
+      </Suspense>
     ),
   },
   {
@@ -67,11 +50,14 @@ const SECTIONS: Section[] = [
     body: (
       <>
         <p>
-          Restricted. This is not a production system. Endpoints appear, change and vanish without
-          notice. If you were looking for something that works, you want the operator&apos;s site.
+          Restricted. This is not a production system: units appear, change and vanish without
+          notice, on any of the garden&apos;s servers. The monitor is open to authorized units only,
+          behind Cloudflare Access. If you were looking for something that works, you want the
+          operator&apos;s site.
         </p>
         <dl className="data">
           <Row label="Clearance">Authorized units only</Row>
+          <Row label="Monitor">Cloudflare Access</Row>
           <Row label="Public index">None</Row>
           <Row label="Stability">Not guaranteed</Row>
         </dl>
@@ -90,6 +76,26 @@ const SECTIONS: Section[] = [
       </>
     ),
   },
+  {
+    label: "Monitor",
+    jp: "監視",
+    body: (
+      <>
+        <a className="big" href={MONITOR_URL}>
+          <span className="sq"></span>monitor ↗
+        </a>
+        <p>
+          Live tunnel, connector and uptime status for every unit of the garden, across all of its
+          servers. Restricted to authorized units: sign-in goes through Cloudflare Access.
+        </p>
+        <dl className="data">
+          <Row label="Watches">Tunnels · Connectors · Uptime · Traffic</Row>
+          <Row label="Refresh">Every 30 s</Row>
+          <Row label="Clearance">Cloudflare Access</Row>
+        </dl>
+      </>
+    ),
+  },
 ];
 
 export default function Home() {
@@ -105,6 +111,10 @@ export default function Home() {
           <span aria-hidden="true">·</span>
           <Clock />
           <span>UTC</span>
+          <span aria-hidden="true">·</span>
+          <a className="sys-link" href={MONITOR_URL}>
+            MONITOR ↗
+          </a>
         </div>
       </header>
 
@@ -117,7 +127,7 @@ export default function Home() {
         <div className="hero">
           <GlitchTitle text="YoRHa GARDEN" />
           <p className="sub">
-            Development · staging unit
+            Multi-server dev · staging host
             <br />
             for <a href={OPERATOR_URL}>al.is-a.dev</a>
           </p>
@@ -132,7 +142,7 @@ export default function Home() {
               <br />
               Recommend: observe, do not rely.
               <br />
-              ↑↓ or 1–4 to navigate.
+              ↑↓ or 1–5 to navigate.
             </aside>
           }
         />
