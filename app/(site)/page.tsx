@@ -1,20 +1,10 @@
-import type { ReactNode } from "react";
 import { Clock } from "../_components/clock";
 import { GlitchTitle } from "../_components/glitch-title";
 import { ModeSwitch } from "../_components/mode-switch";
 import { Sections, type Section } from "../_components/sections";
+import { Row } from "./_components/row";
 
 const OPERATOR_URL = "https://al.is-a.dev";
-
-function Row({ label, ok, children }: { label: string; ok?: boolean; children: ReactNode }) {
-  return (
-    <div className="row">
-      <dt>{label}</dt>
-      <span className="dots"></span>
-      <dd className={ok ? "ok" : undefined}>{children}</dd>
-    </div>
-  );
-}
 
 const SECTIONS: Section[] = [
   {
